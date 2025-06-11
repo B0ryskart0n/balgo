@@ -7,6 +7,11 @@ pub fn a_star(graph: &HashMap<Id, Vec<(Id, Weight)>>, start: Id, goal: Id) -> (V
     let mut path: Vec<Id> = Vec::new();
     let mut weight = 0;
 
+    let mut weights = HashMap::with_capacity(graph.len());
+    for key in graph.keys() {
+        weights.insert(key, if *key == start { 0 } else { u32::MAX });
+    }
+
     return (path, weight);
 }
 

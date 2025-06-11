@@ -7,16 +7,16 @@ fn test1() {
     graph.insert('A', vec![('B', 1), ('C', 3)]);
     graph.insert('B', vec![('D', 5)]);
     graph.insert('C', vec![('D', 2)]);
-    graph.insert('D', vec![('G', 1)]);
-    graph.insert('G', vec![]);
+    graph.insert('D', vec![('E', 1)]);
+    graph.insert('E', vec![]);
 
     let start_node = 'A';
-    let goal_node = 'G';
+    let goal_node = 'E';
 
     let result = a_star(&graph, start_node, goal_node);
 
     let expected_cost = 6;
-    let expected_path = vec!['A', 'C', 'D', 'G'];
+    let expected_path = vec!['A', 'C', 'D', 'E'];
 
     assert_eq!(result.0, expected_path, "The calculated path is incorrect.");
     assert_eq!(result.1, expected_cost, "The calculated cost is incorrect.");
