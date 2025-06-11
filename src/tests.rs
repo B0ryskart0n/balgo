@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn none() {
-    let mut graph = HashMap::from([('A', vec![])]);
+    let graph = HashMap::from([('A', vec![])]);
 
     let start_node = 'A';
     let goal_node = 'B';
@@ -11,11 +11,11 @@ fn none() {
 
     let expected = None;
 
-    assert_eq!(expected, result);
+    assert_eq!(result, expected);
 }
 #[test]
 fn trivial() {
-    let mut graph = HashMap::from([('A', vec![])]);
+    let graph = HashMap::from([('A', vec![])]);
 
     let start_node = 'A';
     let goal_node = 'A';
@@ -23,12 +23,11 @@ fn trivial() {
     let expected = Some((vec!['A'], 0));
     let result = a_star(&graph, start_node, goal_node);
 
-    assert_eq!(expected, result);
+    assert_eq!(result, expected);
 }
 
 #[test]
 fn simple() {
-    // --- Graph Definition ---
     let mut graph = HashMap::new();
     graph.insert('A', vec![('B', 1), ('C', 3)]);
     graph.insert('B', vec![('D', 5), ('C', 1)]);
@@ -43,7 +42,7 @@ fn simple() {
 
     let expected = Some((vec!['A', 'B', 'C', 'D', 'E'], 5));
 
-    assert_eq!(expected, result);
+    assert_eq!(result, expected);
 }
 
 #[test]
