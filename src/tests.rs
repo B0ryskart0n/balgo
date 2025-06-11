@@ -1,11 +1,37 @@
 use super::*;
 
 #[test]
-fn test1() {
+fn none() {
+    let mut graph = HashMap::from([('A', vec![])]);
+
+    let start_node = 'A';
+    let goal_node = 'B';
+
+    let result = a_star(&graph, start_node, goal_node);
+
+    let expected = None;
+
+    assert_eq!(expected, result);
+}
+#[test]
+fn trivial() {
+    let mut graph = HashMap::from([('A', vec![])]);
+
+    let start_node = 'A';
+    let goal_node = 'A';
+
+    let expected = Some((vec!['A'], 0));
+    let result = a_star(&graph, start_node, goal_node);
+
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn simple() {
     // --- Graph Definition ---
     let mut graph = HashMap::new();
     graph.insert('A', vec![('B', 1), ('C', 3)]);
-    graph.insert('B', vec![('D', 5)]);
+    graph.insert('B', vec![('D', 5), ('C', 1)]);
     graph.insert('C', vec![('D', 2)]);
     graph.insert('D', vec![('E', 1)]);
     graph.insert('E', vec![]);
@@ -15,15 +41,13 @@ fn test1() {
 
     let result = a_star(&graph, start_node, goal_node);
 
-    let expected_cost = 6;
-    let expected_path = vec!['A', 'C', 'D', 'E'];
+    let expected = Some((vec!['A', 'B', 'C', 'D', 'E'], 5));
 
-    assert_eq!(result.0, expected_path, "The calculated path is incorrect.");
-    assert_eq!(result.1, expected_cost, "The calculated cost is incorrect.");
+    assert_eq!(expected, result);
 }
 
 #[test]
-fn test2() {
+fn complex() {
     let mut graph = HashMap::new();
     graph.insert('A', vec![('B', 2), ('C', 5), ('D', 10)]);
     graph.insert('B', vec![('E', 4)]);
@@ -39,11 +63,8 @@ fn test2() {
     let start_node = 'A';
     let goal_node = 'J';
 
-    let result = a_star(&graph, start_node, goal_node);
+    let expected = Some((vec!['A', 'C', 'F', 'I', 'J'], 14));
+    let actual = a_star(&graph, start_node, goal_node);
 
-    let expected_cost = 14;
-    let expected_path = vec!['A', 'C', 'F', 'I', 'J'];
-
-    assert_eq!(result.0, expected_path, "The calculated path is incorrect.");
-    assert_eq!(result.1, expected_cost, "The calculated cost is incorrect.");
+    assert_eq!(actual, expected);
 }
