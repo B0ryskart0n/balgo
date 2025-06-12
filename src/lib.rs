@@ -4,105 +4,132 @@ mod tests;
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
-use std::collections::hash_map::Entry;
+use std::fmt::Debug;
+use std::hash::Hash;
 
-pub fn a_star(
-    graph: &HashMap<Id, Vec<(Id, Weight)>>,
+pub fn a_star<Id>(
+    graph: &HashMap<Id, Vec<(Id, u32)>>,
     start: Id,
     goal: Id,
-) -> Option<(Vec<Id>, Weight)> {
-    let mut discovered_nodes = BinaryHeap::<Node>::new();
-    let mut visited_nodes = HashMap::<Id, Option<(Id, Weight)>>::new();
+) -> Option<(Vec<Id>, u32)>
+where
+    Id: Debug + Eq + Clone + Hash + Copy,
+{
+    // Constant heurisitc.
+    let distance = 0;
+
+    let mut candidate_nodes = BinaryHeap::new();
+    let mut nodes = HashMap::from([(start.clone(), (0, None))]);
+
     // Push start node
-    discovered_nodes.push(Node {
+    candidate_nodes.push(Node {
+        id: start.clone(),
+        score: distance,
         prev: None,
-        this: start,
-        weight: 0,
     });
-
-    while !discovered_nodes.is_empty() {
-        let current = discovered_nodes.pop().unwrap();
-        println!("Current:\t{:?}", current);
-        match visited_nodes.entry(current.this) {
-            Entry::Vacant(entry) => {
-                entry.insert(current.prev.map(|prev| (prev, current.weight)));
-            }
-            Entry::Occupied(mut entry) if entry.get().unwrap().1 > current.weight => {
-                entry.insert(current.prev.map(|prev| (prev, current.weight)));
-            }
-            _ => (),
-        };
-
-        if current.this == goal {
-            return Some((construct_path(&visited_nodes, &current), current.weight));
+    while !candidate_nodes.is_empty() {
+        // By construction we are sure that there is a candidate to unwrap.
+        let current_node = candidate_nodes.pop().unwrap();
+        println!("current_node: {:?}", current_node);
+        if current_node.id == goal {
+            return Some(construct_path(&nodes, &current_node));
         }
 
-        let neighbours: Vec<Node> = graph
-            .get(&current.this)
-            .unwrap()
-            .iter()
-            .map(|(next_id, edge_weight)| Node {
-                prev: Some(current.this.clone()),
-                weight: current.weight + edge_weight + 0,
-                this: *next_id,
-            })
-            .collect();
-        println!("New:\t\t{:?}", neighbours);
+        // Assuming that every node has an entry, even those without neighbours.
+        let neighbours = graph.get(&current_node.id).unwrap();
+        for (candidate_id, edge_weight) in neighbours.iter() {
+            let cost = nodes.get(&current_node.id).unwrap().0 + edge_weight;
+            let candidate = Node {
+                prev: Some(current_node.id),
+                score: cost + distance,
+                id: *candidate_id,
+            };
 
-        neighbours
-            .iter()
-            .for_each(|node| discovered_nodes.push(node.clone()));
-
-        println!("Queue:\t\t{:?}\n", discovered_nodes);
+            match nodes.get(candidate_id) {
+                None => {
+                    nodes.insert(candidate_id.clone(), (cost, Some(current_node.id)));
+                    candidate_nodes.push(candidate);
+                }
+                Some((previous_cost, _)) if *previous_cost > cost => {
+                    nodes.insert(candidate_id.clone(), (cost, Some(current_node.id)));
+                    candidate_nodes.push(candidate);
+                }
+                // Means that there was already an entry with smaller weight
+                _ => (),
+            }
+        }
+        println!("candidate_nodes: {:?}", candidate_nodes);
     }
 
     return None;
 }
-fn construct_path(visited_nodes: &HashMap<Id, Option<(Id, Weight)>>, node: &Node) -> Vec<Id> {
-    let mut path_backwards = Vec::from([node.this.clone()]);
+fn construct_path<Id>(
+    visited_nodes: &HashMap<Id, (u32, Option<Id>)>,
+    node: &Node<Id>,
+) -> (Vec<Id>, u32)
+where
+    Id: Eq + Clone + Hash,
+{
+    let final_cost = visited_nodes.get(&node.id).unwrap().0;
+    let mut path_backwards = Vec::from([node.id.clone()]);
 
-    let mut current_node = node.this.clone();
+    let mut current_node = node.id.clone();
 
-    while let Some((previous_node, _)) = visited_nodes.get(&current_node).unwrap() {
+    while let (_, Some(previous_node)) = visited_nodes.get(&current_node).unwrap() {
         path_backwards.push(previous_node.clone());
-        current_node = *previous_node;
+        current_node = previous_node.clone();
     }
     path_backwards.reverse();
-    return path_backwards;
+    return (path_backwards, final_cost);
 }
 
-type Id = char;
-type Weight = u32;
-
-#[derive(Clone)]
-struct Node {
+#[derive(Clone, Debug)]
+struct Node<Id>
+where
+    Id: Eq + Clone + Hash,
+{
+    id: Id,
+    score: u32,
     prev: Option<Id>,
-    weight: Weight,
-    this: Id,
 }
-impl std::fmt::Debug for Node {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        match self.prev {
-            None => write!(f, "? --[{}]--> {}", self.weight, self.this),
-            Some(prev) => write!(f, "{} --[{}]--> {}", prev, self.weight, self.this),
-        }
-    }
-}
-impl PartialEq for Node {
+// impl<Id> for Node<Id>
+// where
+//     Id: std::fmt::Display,
+//     Id: Eq,
+//     Id: Clone,
+//     Id: Hash
+//     {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+//         match self.prev.clone() {
+//             None => write!(f, "{} {} -", self.id, self.score),
+//             Some(previous) => write!(f, "{} {} {}", self.id, self.score, previous),
+//         }
+//     }
+// }
+impl<Id> PartialEq for Node<Id>
+where
+    Id: Debug + Eq + Clone + Hash,
+{
     fn eq(&self, other: &Self) -> bool {
-        self.weight.eq(&other.weight)
+        self.score.eq(&other.score)
     }
 }
-impl Eq for Node {}
-impl PartialOrd for Node {
+impl<Id> Eq for Node<Id> where Id: Debug + Eq + Clone + Hash {}
+impl<Id> PartialOrd for Node<Id>
+where
+    Id: Debug + Eq + Clone + Hash,
+{
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
-impl Ord for Node {
+impl<Id> Ord for Node<Id>
+where
+    Id: Debug + Eq + Clone + Hash,
+{
     fn cmp(&self, other: &Self) -> Ordering {
-        self.weight
-            .cmp(&other.weight)
+        self.score
+            .cmp(&other.score)
             // Flipped ordering because BinaryHeap is a max-heap and we want min-heap
             .reverse()
     }
