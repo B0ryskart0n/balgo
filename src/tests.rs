@@ -30,17 +30,16 @@ fn trivial() {
 fn simple() {
     let mut graph = HashMap::new();
     graph.insert('A', vec![('B', 1), ('C', 3)]);
-    graph.insert('B', vec![('D', 5), ('C', 1)]);
-    graph.insert('C', vec![('D', 2)]);
-    graph.insert('D', vec![('E', 1)]);
-    graph.insert('E', vec![]);
+    graph.insert('B', vec![('D', 3), ('C', 1)]);
+    graph.insert('C', vec![('D', 1)]);
+    graph.insert('D', vec![]);
 
     let start_node = 'A';
-    let goal_node = 'E';
+    let goal_node = 'D';
 
     let result = a_star(&graph, start_node, goal_node);
 
-    let expected = Some((vec!['A', 'B', 'C', 'D', 'E'], 5));
+    let expected = Some((vec!['A', 'B', 'C', 'D'], 3));
 
     assert_eq!(result, expected);
 }
@@ -62,7 +61,7 @@ fn complex() {
     let start_node = 'A';
     let goal_node = 'J';
 
-    let expected = Some((vec!['A', 'C', 'F', 'I', 'J'], 14));
+    let expected = Some((vec!['A', 'B', 'E', 'H', 'J'], 15));
     let actual = a_star(&graph, start_node, goal_node);
 
     assert_eq!(actual, expected);

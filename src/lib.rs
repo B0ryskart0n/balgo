@@ -4,6 +4,7 @@ mod tests;
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 
 pub fn a_star(
     graph: &HashMap<Id, Vec<(Id, Weight)>>,
@@ -11,50 +12,58 @@ pub fn a_star(
     goal: Id,
 ) -> Option<(Vec<Id>, Weight)> {
     let mut discovered_nodes = BinaryHeap::<Node>::new();
-    let mut previous_nodes = HashMap::<Id, Option<Id>>::new();
-    let start_node = Node {
+    let mut visited_nodes = HashMap::<Id, Option<(Id, Weight)>>::new();
+    // Push start node
+    discovered_nodes.push(Node {
         prev: None,
         this: start,
         weight: 0,
-    };
-    discovered_nodes.push(start_node);
+    });
 
     while !discovered_nodes.is_empty() {
-        let node = discovered_nodes.pop().unwrap();
-        println!("Current node: {:?}", node);
-        previous_nodes.insert(node.this.clone(), node.prev);
-
-        if node.this == goal {
-            return Some((construct_path(&previous_nodes, &node), node.weight));
-        }
-
-        for (next_node, edge_weight) in graph.get(&node.this).unwrap().iter() {
-            match graph.get(&next_node) {
-                Some(Node {
-                    prev: _,
-                    this: _,
-                    weight: w,
-                }) => (),
-                None => (),
+        let current = discovered_nodes.pop().unwrap();
+        println!("Current:\t{:?}", current);
+        match visited_nodes.entry(current.this) {
+            Entry::Vacant(entry) => {
+                entry.insert(current.prev.map(|prev| (prev, current.weight)));
             }
-            discovered_nodes.push(Node {
-                prev: Some(node.this.clone()),
-                this: next_node.clone(),
-                weight: node.weight + edge_weight + 0,
-            });
+            Entry::Occupied(mut entry) if entry.get().unwrap().1 > current.weight => {
+                entry.insert(current.prev.map(|prev| (prev, current.weight)));
+            }
+            _ => (),
+        };
+
+        if current.this == goal {
+            return Some((construct_path(&visited_nodes, &current), current.weight));
         }
+
+        let neighbours: Vec<Node> = graph
+            .get(&current.this)
+            .unwrap()
+            .iter()
+            .map(|(next_id, edge_weight)| Node {
+                prev: Some(current.this.clone()),
+                weight: current.weight + edge_weight + 0,
+                this: *next_id,
+            })
+            .collect();
+        println!("New:\t\t{:?}", neighbours);
+
+        neighbours
+            .iter()
+            .for_each(|node| discovered_nodes.push(node.clone()));
+
+        println!("Queue:\t\t{:?}\n", discovered_nodes);
     }
 
     return None;
 }
-fn construct_path(previous_nodes: &HashMap<Id, Option<Id>>, node: &Node) -> Vec<Id> {
-    println!("Previous_nodes: {:?}", previous_nodes);
-
+fn construct_path(visited_nodes: &HashMap<Id, Option<(Id, Weight)>>, node: &Node) -> Vec<Id> {
     let mut path_backwards = Vec::from([node.this.clone()]);
 
     let mut current_node = node.this.clone();
 
-    while let Some(previous_node) = previous_nodes.get(&current_node).unwrap() {
+    while let Some((previous_node, _)) = visited_nodes.get(&current_node).unwrap() {
         path_backwards.push(previous_node.clone());
         current_node = *previous_node;
     }
@@ -65,11 +74,19 @@ fn construct_path(previous_nodes: &HashMap<Id, Option<Id>>, node: &Node) -> Vec<
 type Id = char;
 type Weight = u32;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct Node {
     prev: Option<Id>,
-    this: Id,
     weight: Weight,
+    this: Id,
+}
+impl std::fmt::Debug for Node {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self.prev {
+            None => write!(f, "? --[{}]--> {}", self.weight, self.this),
+            Some(prev) => write!(f, "{} --[{}]--> {}", prev, self.weight, self.this),
+        }
+    }
 }
 impl PartialEq for Node {
     fn eq(&self, other: &Self) -> bool {
