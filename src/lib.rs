@@ -4,25 +4,24 @@ mod tests;
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
-use std::fmt::Debug;
 use std::hash::Hash;
 
 pub fn a_star<Id>(
+    // TODO Support different formats
     graph: &HashMap<Id, Vec<(Id, u32)>>,
     start: Id,
     goal: Id,
 ) -> Option<(Vec<Id>, u32)>
 where
-    Id: Debug + Eq + Hash + Copy,
+    Id: Eq + Hash + Copy,
 {
     // Constant heurisitc.
     let distance = 0;
 
     let mut candidate_nodes = BinaryHeap::new();
-    candidate_nodes.push(Node {
-        id: start.clone(),
+    candidate_nodes.push(CandidateNode {
+        id: start,
         score: distance,
-        prev: None,
     });
 
     let mut nodes = HashMap::new();
@@ -38,9 +37,8 @@ where
             .unwrap_or(&vec![])
             .into_iter()
             .for_each(|(candidate_id, edge_weight)| {
-                let cost = nodes.get(&current_node.id).unwrap().0 + edge_weight;
-                let candidate = Node {
-                    prev: Some(current_node.id),
+                let cost = nodes.get(&current_node.id).unwrap().0 + *edge_weight;
+                let candidate = CandidateNode {
                     score: cost + distance,
                     id: *candidate_id,
                 };
@@ -82,16 +80,16 @@ where
     return (path, final_cost);
 }
 
-#[derive(Copy, Clone, Debug)]
-struct Node<Id>
+#[derive(Copy, Clone)]
+struct CandidateNode<Id>
 where
     Id: Eq + Copy + Hash,
 {
     id: Id,
+    // Used solely for determining order when inserting to the BinaryHeap
     score: u32,
-    prev: Option<Id>,
 }
-impl<Id> PartialEq for Node<Id>
+impl<Id> PartialEq for CandidateNode<Id>
 where
     Id: Eq + Copy + Hash,
 {
@@ -99,8 +97,8 @@ where
         self.score.eq(&other.score)
     }
 }
-impl<Id> Eq for Node<Id> where Id: Eq + Copy + Hash {}
-impl<Id> PartialOrd for Node<Id>
+impl<Id> Eq for CandidateNode<Id> where Id: Eq + Copy + Hash {}
+impl<Id> PartialOrd for CandidateNode<Id>
 where
     Id: Eq + Copy + Hash,
 {
@@ -108,7 +106,7 @@ where
         Some(self.cmp(other))
     }
 }
-impl<Id> Ord for Node<Id>
+impl<Id> Ord for CandidateNode<Id>
 where
     Id: Eq + Copy + Hash,
 {
