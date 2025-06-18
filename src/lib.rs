@@ -21,41 +21,44 @@ where
     let mut candidate_nodes = BinaryHeap::new();
     candidate_nodes.push(CandidateNode {
         id: start,
-        score: distance,
+        cost: 0,
+        distance: 0,
     });
 
     let mut nodes = HashMap::new();
     nodes.insert(start, (0, None));
 
-    while let Some(current_node) = candidate_nodes.pop() {
-        if current_node.id == goal {
-            return Some(construct_path(&nodes, current_node.id));
+    while let Some(CandidateNode { id, cost, .. }) = candidate_nodes.pop() {
+        if id == goal {
+            return Some(construct_path(&nodes, id));
         }
 
         graph
-            .get(&current_node.id)
+            .get(&id)
             .unwrap_or(&vec![])
-            .into_iter()
+            .iter()
             .for_each(|(candidate_id, edge_weight)| {
-                let cost = nodes.get(&current_node.id).unwrap().0 + *edge_weight;
+                let candidate_cost = cost + *edge_weight;
                 let candidate = CandidateNode {
-                    score: cost + distance,
+                    cost: candidate_cost,
+                    distance: distance,
                     id: *candidate_id,
                 };
 
                 match nodes.get(candidate_id) {
                     None => {
-                        nodes.insert(candidate_id.clone(), (cost, Some(current_node.id)));
+                        nodes.insert(candidate_id.clone(), (candidate_cost, Some(id)));
                         candidate_nodes.push(candidate);
                     }
-                    Some((previous_cost, _)) if *previous_cost > cost => {
-                        nodes.insert(candidate_id.clone(), (cost, Some(current_node.id)));
+                    Some((previous_cost, _)) if *previous_cost > candidate_cost => {
+                        nodes.insert(candidate_id.clone(), (candidate_cost, Some(id)));
                         candidate_nodes.push(candidate);
                     }
                     // Means that there was already an entry with smaller weight
                     _ => (),
                 }
             });
+        graph.capacity();
     }
 
     return None;
@@ -87,14 +90,23 @@ where
 {
     id: Id,
     // Used solely for determining order when inserting to the BinaryHeap
-    score: u32,
+    cost: u32,
+    distance: u32,
+}
+impl<Id> CandidateNode<Id>
+where
+    Id: Eq + Copy + Hash,
+{
+    fn score(&self) -> u32 {
+        self.cost + self.distance
+    }
 }
 impl<Id> PartialEq for CandidateNode<Id>
 where
     Id: Eq + Copy + Hash,
 {
     fn eq(&self, other: &Self) -> bool {
-        self.score.eq(&other.score)
+        self.score().eq(&other.score())
     }
 }
 impl<Id> Eq for CandidateNode<Id> where Id: Eq + Copy + Hash {}
@@ -111,8 +123,8 @@ where
     Id: Eq + Copy + Hash,
 {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.score
-            .cmp(&other.score)
+        self.score()
+            .cmp(&other.score())
             // Flipped ordering because BinaryHeap is a max-heap and we want min-heap
             .reverse()
     }
