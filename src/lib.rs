@@ -38,20 +38,20 @@ where
             .unwrap_or(&vec![])
             .iter()
             .for_each(|(candidate_id, edge_weight)| {
-                let candidate_cost = cost + *edge_weight;
                 let candidate = CandidateNode {
-                    cost: candidate_cost,
+                    cost: cost + *edge_weight,
                     distance: distance,
                     id: *candidate_id,
                 };
 
                 match nodes.get(candidate_id) {
+                    // TODO Could those two arms be merged in some way?
                     None => {
-                        nodes.insert(candidate_id.clone(), (candidate_cost, Some(id)));
+                        nodes.insert(candidate.id.clone(), (candidate.cost, Some(id)));
                         candidate_nodes.push(candidate);
                     }
-                    Some((previous_cost, _)) if *previous_cost > candidate_cost => {
-                        nodes.insert(candidate_id.clone(), (candidate_cost, Some(id)));
+                    Some((previous_cost, _)) if *previous_cost > candidate.cost => {
+                        nodes.insert(candidate.id.clone(), (candidate.cost, Some(id)));
                         candidate_nodes.push(candidate);
                     }
                     // Means that there was already an entry with smaller weight
