@@ -19,20 +19,25 @@ where
     let distance = 0;
 
     let mut candidate_nodes = BinaryHeap::new();
-    let start_node = CandidateNode {
+    candidate_nodes.push(CandidateNode {
         this: start,
         prev: None,
         cost: 0,
         distance: distance,
-    };
-    candidate_nodes.push(start_node);
-
-    let mut nodes = HashMap::new();
-    nodes.insert(start_node.this, (start_node.cost, start_node.prev));
+    });
+    let mut visited_nodes = HashMap::new();
 
     while let Some(current) = candidate_nodes.pop() {
+        if let Some((previous_cost, _)) = visited_nodes.get(&current.this) {
+            if *previous_cost <= current.cost {
+                // Already checked this node with a lighter path
+                continue;
+            }
+        }
+
+        visited_nodes.insert(current.this, (current.cost, current.prev));
         if current.this == goal {
-            return Some(construct_path(&nodes, current.this));
+            return Some(construct_path(&visited_nodes, current.this));
         }
 
         graph.get(&current.this).unwrap_or(&vec![]).iter().for_each(
@@ -44,18 +49,14 @@ where
                     distance: distance,
                 };
 
-                match nodes.get(&candidate.this) {
+                match visited_nodes.get(&candidate.this) {
                     // There is already an entry with lower (or equal) cost
                     Some((previous_cost, _)) if *previous_cost <= candidate.cost => (),
                     // Otherwise add neighbour as a candidate
-                    _ => {
-                        candidate_nodes.push(candidate);
-                        nodes.insert(candidate.this, (candidate.cost, candidate.prev));
-                    }
+                    _ => candidate_nodes.push(candidate),
                 }
             },
         );
-        graph.capacity();
     }
 
     return None;
