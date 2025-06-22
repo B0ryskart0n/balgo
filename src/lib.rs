@@ -33,7 +33,8 @@ where
 
     let mut candidate_nodes = BinaryHeap::new();
     candidate_nodes.push(start_node);
-    let mut known_nodes = HashMap::new();
+    // Smallest-cost path to node
+    let mut known_nodes: HashMap<Id, (u32, Option<Id>)> = HashMap::new();
     known_nodes.insert(start_node.this, (start_node.cost, None));
 
     while let Some(current) = candidate_nodes.pop() {
