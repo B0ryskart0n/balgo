@@ -20,44 +20,40 @@ where
 
     let mut candidate_nodes = BinaryHeap::new();
     candidate_nodes.push(CandidateNode {
-        id: start,
+        this: start,
+        prev: None,
         cost: 0,
-        distance: 0,
+        distance: distance,
     });
 
     let mut nodes = HashMap::new();
     nodes.insert(start, (0, None));
 
-    while let Some(CandidateNode { id, cost, .. }) = candidate_nodes.pop() {
-        if id == goal {
-            return Some(construct_path(&nodes, id));
+    while let Some(current) = candidate_nodes.pop() {
+        if current.this == goal {
+            return Some(construct_path(&nodes, current.this));
         }
 
-        graph
-            .get(&id)
-            .unwrap_or(&vec![])
-            .iter()
-            .for_each(|(candidate_id, edge_weight)| {
+        graph.get(&current.this).unwrap_or(&vec![]).iter().for_each(
+            |(candidate_id, edge_weight)| {
                 let candidate = CandidateNode {
-                    cost: cost + *edge_weight,
+                    this: *candidate_id,
+                    prev: Some(current.this),
+                    cost: current.cost + *edge_weight,
                     distance: distance,
-                    id: *candidate_id,
                 };
 
-                match nodes.get(candidate_id) {
-                    // TODO Could those two arms be merged in some way?
-                    None => {
-                        nodes.insert(candidate.id.clone(), (candidate.cost, Some(id)));
+                match nodes.get(&candidate.this) {
+                    // There is already an entry with lower (or equal) cost
+                    Some((previous_cost, _)) if *previous_cost <= candidate.cost => (),
+                    // Otherwise add neighbour as a candidate
+                    _ => {
                         candidate_nodes.push(candidate);
+                        nodes.insert(candidate.this, (candidate.cost, Some(current.this)));
                     }
-                    Some((previous_cost, _)) if *previous_cost > candidate.cost => {
-                        nodes.insert(candidate.id.clone(), (candidate.cost, Some(id)));
-                        candidate_nodes.push(candidate);
-                    }
-                    // Means that there was already an entry with smaller weight
-                    _ => (),
                 }
-            });
+            },
+        );
         graph.capacity();
     }
 
@@ -88,8 +84,8 @@ struct CandidateNode<Id>
 where
     Id: Eq + Copy + Hash,
 {
-    id: Id,
-    // Used solely for determining order when inserting to the BinaryHeap
+    this: Id,
+    prev: Option<Id>,
     cost: u32,
     distance: u32,
 }
