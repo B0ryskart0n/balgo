@@ -19,15 +19,16 @@ where
     let distance = 0;
 
     let mut candidate_nodes = BinaryHeap::new();
-    candidate_nodes.push(CandidateNode {
+    let start_node = CandidateNode {
         this: start,
         prev: None,
         cost: 0,
         distance: distance,
-    });
+    };
+    candidate_nodes.push(start_node);
 
     let mut nodes = HashMap::new();
-    nodes.insert(start, (0, None));
+    nodes.insert(start_node.this, (start_node.cost, start_node.prev));
 
     while let Some(current) = candidate_nodes.pop() {
         if current.this == goal {
@@ -49,7 +50,7 @@ where
                     // Otherwise add neighbour as a candidate
                     _ => {
                         candidate_nodes.push(candidate);
-                        nodes.insert(candidate.this, (candidate.cost, Some(current.this)));
+                        nodes.insert(candidate.this, (candidate.cost, candidate.prev));
                     }
                 }
             },
