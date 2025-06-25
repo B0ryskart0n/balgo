@@ -11,6 +11,14 @@ use std::hash::Hash;
 // this is a suboptimal path.
 // This begs the question whether a BinaryHeap is really the best solution. It might be better to keep a HashMap
 // of known nodes and their cost + path, so when a (C, 2, B) is found it will replace the (C, 3, A) subsolution.
+//
+// Since a crucial part of the algorithm is selecting the next node based on it's cost BinaryHeap should still be used,
+// because it enables that in O(log(n)) time. While keeping track of only the best path would require a sort of linear
+// data structure that would mean O(n) time looking for least cost.
+
+// One could consider keeping track of `visited_nodes` instead of `known_nodes`, which would mean smaller HashMap,
+// but I'm pretty sure that having more information in `known_nodes` is better because it enables us to
+// make better (more informed) decisions in adding (or not adding) candidate neighbours to the candidate queue.
 
 pub fn a_star<Id>(
     // TODO Support different formats
@@ -33,18 +41,18 @@ where
 
     let mut candidate_nodes = BinaryHeap::new();
     candidate_nodes.push(start_node);
-    // Smallest-cost path to node
+    // Smallest (known) cost path to node and the preceding node.
     let mut known_nodes: HashMap<Id, (u32, Option<Id>)> = HashMap::new();
     known_nodes.insert(start_node.this, (start_node.cost, None));
 
     while let Some(current) = candidate_nodes.pop() {
-        if let Some((previous_cost, _)) = known_nodes.get(&current.this) {
-            // Whether this is <= or < depends on whether we keep track of visited_nodes, or known_nodes
-            if *previous_cost < current.cost {
-                // We know of a node with a lighter path, no need to check this one
-                continue;
-            }
-        }
+        // TODO Verify if such logic is beneficial
+        // if let Some((previous_cost, _)) = known_nodes.get(&current.this) {
+        //     if *previous_cost < current.cost {
+        //         // We know of a node with a lighter path, no need to check this one
+        //         continue;
+        //     }
+        // }
 
         if current.this == goal {
             return Some(construct_path(&known_nodes, current.this));
@@ -59,9 +67,11 @@ where
                     distance: distance,
                 };
                 match known_nodes.get(&candidate.this) {
-                    // There is already an entry with lower (or equal) cost
-                    Some((previous_cost, _)) if *previous_cost <= candidate.cost => (),
-                    // Otherwise add neighbour as a candidate
+                    // We know a better (or equivalent) path to this candidate neighbour.
+                    // Testing with `<=` because it should prevent more allocations and
+                    // if the path are really equal then it does not matter.
+                    Some((known_cost, _)) if *known_cost <= candidate.cost => (),
+                    // Otherwise add neighbour as a candidate for future graph exploration.
                     _ => {
                         candidate_nodes.push(candidate);
                         known_nodes.insert(candidate.this, (candidate.cost, Some(current.this)));
@@ -73,6 +83,7 @@ where
 
     return None;
 }
+// TODO Only return path
 fn construct_path<Id>(
     visited_nodes: &HashMap<Id, (u32, Option<Id>)>,
     final_node_id: Id,
@@ -80,11 +91,13 @@ fn construct_path<Id>(
 where
     Id: Eq + Copy + Hash,
 {
+    // TODO Handle uwrap
     let final_cost = visited_nodes.get(&final_node_id).unwrap().0;
     let mut path = Vec::from([final_node_id]);
 
     let mut current_node = final_node_id;
 
+    // TODO Handle unwrap
     while let (_, Some(previous_node)) = visited_nodes.get(&current_node).unwrap() {
         path.push(*previous_node);
         current_node = *previous_node;
