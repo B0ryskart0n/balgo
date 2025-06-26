@@ -21,7 +21,10 @@ use std::hash::Hash;
 // One could consider keeping track of `visited_nodes` instead of `known_nodes`, which would mean smaller HashMap,
 // but I'm pretty sure that having more information in `known_nodes` is better because it enables us to
 // make better (more informed) decisions in adding (or not adding) candidate neighbours to the candidate queue.
+// TODO Consider keeping track of both visited and known nodes. The former could hold only the previous node and the
+// latter could hold only the cost
 
+// TODO Parametrise u32 as Cost
 pub fn a_star<Id>(
     graph: &HashMap<Id, Vec<(Id, u32)>>,
     start: Id,
@@ -74,16 +77,17 @@ where
 
     return None;
 }
-fn construct_path<Id>(visited_nodes: &HashMap<Id, (u32, Option<Id>)>, final_node_id: Id) -> Vec<Id>
+fn construct_path<Id>(known_nodes: &HashMap<Id, (u32, Option<Id>)>, final_node_id: Id) -> Vec<Id>
 where
     Id: Eq + Copy + Hash,
 {
     let mut path = Vec::from([final_node_id]);
 
     let mut current_node = final_node_id;
-
-    // TODO Handle unwrap
-    while let (_, Some(previous_node)) = visited_nodes.get(&current_node).unwrap() {
+    while let (_, Some(previous_node)) = known_nodes
+        .get(&current_node)
+        .expect("Internal implementation error: known_nodes should contain previous node.")
+    {
         path.push(*previous_node);
         current_node = *previous_node;
     }
