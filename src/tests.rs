@@ -7,7 +7,7 @@ fn none() {
     let start_node = 'A';
     let goal_node = 'B';
 
-    let result = a_star(&graph, start_node, goal_node);
+    let result = a_star::<char, u32>(&graph, start_node, goal_node);
 
     let expected = None;
 
@@ -21,7 +21,7 @@ fn trivial() {
     let goal_node = 'A';
 
     let expected = Some((vec!['A'], 0));
-    let result = a_star(&graph, start_node, goal_node);
+    let result = a_star::<char, u32>(&graph, start_node, goal_node);
 
     assert_eq!(result, expected);
 }
@@ -37,7 +37,7 @@ fn simple() {
     let start_node = 'A';
     let goal_node = 'D';
 
-    let result = a_star(&graph, start_node, goal_node);
+    let result = a_star::<char, u32>(&graph, start_node, goal_node);
 
     let expected = Some((vec!['A', 'B', 'C', 'D'], 3));
 
@@ -62,7 +62,7 @@ fn complex() {
     let goal_node = 'J';
 
     let expected = Some((vec!['A', 'B', 'E', 'H', 'J'], 15));
-    let actual = a_star(&graph, start_node, goal_node);
+    let actual = a_star::<char, u32>(&graph, start_node, goal_node);
 
     assert_eq!(actual, expected);
 }
@@ -150,7 +150,7 @@ fn very_complex() {
     graph.insert(goal_node, vec![]);
 
     let expected = Some((golden_path_nodes, expected_cost));
-    let actual = a_star(&graph, start_node, goal_node);
+    let actual = a_star::<i32, u32>(&graph, start_node, goal_node);
 
     assert_eq!(actual, expected);
 }

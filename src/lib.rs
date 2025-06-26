@@ -7,6 +7,7 @@ use candidate_node::CandidateNode;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
 use std::hash::Hash;
+use std::ops::Add;
 
 // One cannot easily remove/replace specific node in the BinaryHeap, replacing (C, 3, A) with (C, 2, B)
 // so the (C, 3, A) will remain for a potential pop in the future, but this pop does not make sense, since we know
@@ -24,28 +25,28 @@ use std::hash::Hash;
 // TODO Consider keeping track of both visited and known nodes. The former could hold only the previous node and the
 // latter could hold only the cost
 
-// TODO Parametrise u32 as Cost
-pub fn a_star<Id>(
-    graph: &HashMap<Id, Vec<(Id, u32)>>,
+pub fn a_star<Id, Cost>(
+    graph: &HashMap<Id, Vec<(Id, Cost)>>,
     start: Id,
     goal: Id,
-) -> Option<(Vec<Id>, u32)>
+) -> Option<(Vec<Id>, Cost)>
 where
     Id: Eq + Hash + Copy,
+    Cost: Ord + Copy + Clone + Add<Output = Cost> + Default,
 {
     // Constant heurisitc.
-    let distance = 0;
+    let distance = Cost::default();
 
     let start_node = CandidateNode {
         this: start,
-        cost: 0,
+        cost: Cost::default(),
         distance: distance,
     };
 
     let mut candidate_nodes = BinaryHeap::new();
     candidate_nodes.push(start_node);
     // Smallest (known) cost path to node and the preceding node.
-    let mut known_nodes: HashMap<Id, (u32, Option<Id>)> = HashMap::new();
+    let mut known_nodes: HashMap<Id, (Cost, Option<Id>)> = HashMap::new();
     known_nodes.insert(start_node.this, (start_node.cost, None));
 
     while let Some(current) = candidate_nodes.pop() {
@@ -77,9 +78,13 @@ where
 
     return None;
 }
-fn construct_path<Id>(known_nodes: &HashMap<Id, (u32, Option<Id>)>, final_node_id: Id) -> Vec<Id>
+fn construct_path<Id, Cost>(
+    known_nodes: &HashMap<Id, (Cost, Option<Id>)>,
+    final_node_id: Id,
+) -> Vec<Id>
 where
     Id: Eq + Copy + Hash,
+    Cost: Ord,
 {
     let mut path = Vec::from([final_node_id]);
 
