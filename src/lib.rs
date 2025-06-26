@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod tests;
 
-use std::cmp::Ordering;
+mod candidate_node;
+
+use candidate_node::CandidateNode;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -21,7 +23,6 @@ use std::hash::Hash;
 // make better (more informed) decisions in adding (or not adding) candidate neighbours to the candidate queue.
 
 pub fn a_star<Id>(
-    // TODO Support different formats
     graph: &HashMap<Id, Vec<(Id, u32)>>,
     start: Id,
     goal: Id,
@@ -34,7 +35,6 @@ where
 
     let start_node = CandidateNode {
         this: start,
-        prev: None,
         cost: 0,
         distance: distance,
     };
@@ -46,23 +46,14 @@ where
     known_nodes.insert(start_node.this, (start_node.cost, None));
 
     while let Some(current) = candidate_nodes.pop() {
-        // TODO Verify if such logic is beneficial
-        // if let Some((previous_cost, _)) = known_nodes.get(&current.this) {
-        //     if *previous_cost < current.cost {
-        //         // We know of a node with a lighter path, no need to check this one
-        //         continue;
-        //     }
-        // }
-
         if current.this == goal {
-            return Some(construct_path(&known_nodes, current.this));
+            return Some((construct_path(&known_nodes, current.this), current.cost));
         }
 
         graph.get(&current.this).unwrap_or(&vec![]).iter().for_each(
             |(candidate_id, edge_weight)| {
                 let candidate = CandidateNode {
                     this: *candidate_id,
-                    prev: Some(current.this),
                     cost: current.cost + *edge_weight,
                     distance: distance,
                 };
@@ -83,16 +74,10 @@ where
 
     return None;
 }
-// TODO Only return path
-fn construct_path<Id>(
-    visited_nodes: &HashMap<Id, (u32, Option<Id>)>,
-    final_node_id: Id,
-) -> (Vec<Id>, u32)
+fn construct_path<Id>(visited_nodes: &HashMap<Id, (u32, Option<Id>)>, final_node_id: Id) -> Vec<Id>
 where
     Id: Eq + Copy + Hash,
 {
-    // TODO Handle uwrap
-    let final_cost = visited_nodes.get(&final_node_id).unwrap().0;
     let mut path = Vec::from([final_node_id]);
 
     let mut current_node = final_node_id;
@@ -103,52 +88,5 @@ where
         current_node = *previous_node;
     }
     path.reverse();
-    return (path, final_cost);
-}
-
-#[derive(Copy, Clone)]
-struct CandidateNode<Id>
-where
-    Id: Eq + Copy + Hash,
-{
-    this: Id,
-    prev: Option<Id>,
-    cost: u32,
-    distance: u32,
-}
-impl<Id> CandidateNode<Id>
-where
-    Id: Eq + Copy + Hash,
-{
-    fn score(&self) -> u32 {
-        self.cost + self.distance
-    }
-}
-impl<Id> PartialEq for CandidateNode<Id>
-where
-    Id: Eq + Copy + Hash,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.score().eq(&other.score())
-    }
-}
-impl<Id> Eq for CandidateNode<Id> where Id: Eq + Copy + Hash {}
-impl<Id> PartialOrd for CandidateNode<Id>
-where
-    Id: Eq + Copy + Hash,
-{
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-impl<Id> Ord for CandidateNode<Id>
-where
-    Id: Eq + Copy + Hash,
-{
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.score()
-            .cmp(&other.score())
-            // Flipped ordering because BinaryHeap is a max-heap and we want min-heap
-            .reverse()
-    }
+    return path;
 }
