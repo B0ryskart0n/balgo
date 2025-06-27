@@ -79,7 +79,6 @@ fn complex() {
 
     assert_eq!(actual, expected);
 }
-use std::collections::HashMap;
 
 #[test]
 fn very_complex() {
