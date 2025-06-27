@@ -66,6 +66,16 @@ fn main() {
     let mut now;
     for i in 0..N {
         now = Instant::now();
+        black_box(a_star_old(
+            black_box(&graph),
+            black_box(start_node),
+            black_box(goal_node),
+        ));
+        elapsed[i] = now.elapsed().as_secs_f64();
+    }
+    print_elapsed_stats("old", &elapsed);
+    for i in 0..N {
+        now = Instant::now();
         black_box(a_star(
             black_box(&graph),
             black_box(start_node),
@@ -73,17 +83,7 @@ fn main() {
         ));
         elapsed[i] = now.elapsed().as_secs_f64();
     }
-    print_elapsed_stats("I", &elapsed);
-    for i in 0..N {
-        now = Instant::now();
-        black_box(a_star2(
-            black_box(&graph),
-            black_box(start_node),
-            black_box(goal_node),
-        ));
-        elapsed[i] = now.elapsed().as_secs_f64();
-    }
-    print_elapsed_stats("II", &elapsed);
+    print_elapsed_stats("new", &elapsed);
 }
 
 fn print_elapsed_stats(id: &str, elapsed: &Vec<f64>) {

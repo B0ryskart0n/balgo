@@ -22,8 +22,7 @@ use std::ops::Add;
 // One could consider keeping track of `visited_nodes` instead of `known_nodes`, which would mean smaller HashMap,
 // but I'm pretty sure that having more information in `known_nodes` is better because it enables us to
 // make better (more informed) decisions in adding (or not adding) candidate neighbours to the candidate queue.
-// TODO Consider keeping track of both visited and known nodes. The former could hold only the previous node and the
-// latter could hold only the cost
+// TODO Verify the above in a benchmark
 
 pub fn a_star<Id, Cost>(
     graph: &HashMap<Id, Vec<(Id, Cost)>>,
@@ -52,6 +51,11 @@ where
     while let Some(current) = candidate_nodes.pop() {
         if current.this == goal {
             return Some((construct_path(&known_nodes, current.this), current.cost));
+        }
+
+        let known_node = known_nodes.get(&current.this).unwrap();
+        if known_node.0 < current.cost {
+            continue;
         }
 
         graph.get(&current.this).unwrap_or(&vec![]).iter().for_each(
@@ -99,7 +103,7 @@ where
     return path;
 }
 
-pub fn a_star2<Id, Cost>(
+pub fn a_star_old<Id, Cost>(
     graph: &HashMap<Id, Vec<(Id, Cost)>>,
     start: Id,
     goal: Id,
@@ -120,14 +124,12 @@ where
     let mut candidate_nodes = BinaryHeap::new();
     candidate_nodes.push(start_node);
     // Smallest (known) cost path to node and the preceding node.
-    let mut known_nodes: HashMap<Id, Cost> = HashMap::new();
-    known_nodes.insert(start_node.this, start_node.cost);
-    let mut visited_nodes: HashMap<Id, Option<Id>> = HashMap::new();
-    visited_nodes.insert(start_node.this, None);
+    let mut known_nodes: HashMap<Id, (Cost, Option<Id>)> = HashMap::new();
+    known_nodes.insert(start_node.this, (start_node.cost, None));
 
     while let Some(current) = candidate_nodes.pop() {
         if current.this == goal {
-            return Some((construct_path2(&visited_nodes, current.this), current.cost));
+            return Some((construct_path_old(&known_nodes, current.this), current.cost));
         }
 
         graph.get(&current.this).unwrap_or(&vec![]).iter().for_each(
@@ -141,12 +143,11 @@ where
                     // We know a better (or equivalent) path to this candidate neighbour.
                     // Testing with `<=` because it should prevent more allocations and
                     // if the path are really equal then it does not matter.
-                    Some(known_cost) if *known_cost <= candidate.cost => (),
+                    Some((known_cost, _)) if *known_cost <= candidate.cost => (),
                     // Otherwise add neighbour as a candidate for future graph exploration.
                     _ => {
                         candidate_nodes.push(candidate);
-                        known_nodes.insert(candidate.this, candidate.cost);
-                        visited_nodes.insert(candidate.this, Some(current.this));
+                        known_nodes.insert(candidate.this, (candidate.cost, Some(current.this)));
                     }
                 }
             },
@@ -155,15 +156,17 @@ where
 
     return None;
 }
-
-fn construct_path2<Id>(visited_nodes: &HashMap<Id, Option<Id>>, final_node_id: Id) -> Vec<Id>
+fn construct_path_old<Id, Cost>(
+    known_nodes: &HashMap<Id, (Cost, Option<Id>)>,
+    final_node_id: Id,
+) -> Vec<Id>
 where
     Id: Eq + Copy + Hash,
 {
     let mut path = Vec::from([final_node_id]);
 
     let mut current_node = final_node_id;
-    while let Some(previous_node) = visited_nodes
+    while let (_, Some(previous_node)) = known_nodes
         .get(&current_node)
         .expect("Internal implementation error: known_nodes should contain previous node.")
     {
