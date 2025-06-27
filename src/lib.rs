@@ -84,7 +84,6 @@ fn construct_path<Id, Cost>(
 ) -> Vec<Id>
 where
     Id: Eq + Copy + Hash,
-    Cost: Ord,
 {
     let mut path = Vec::from([final_node_id]);
 
