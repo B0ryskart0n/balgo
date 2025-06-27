@@ -53,11 +53,6 @@ where
             return Some((construct_path(&known_nodes, current.this), current.cost));
         }
 
-        let known_node = known_nodes.get(&current.this).unwrap();
-        if known_node.0 < current.cost {
-            continue;
-        }
-
         graph.get(&current.this).unwrap_or(&vec![]).iter().for_each(
             |(candidate_id, edge_weight)| {
                 let candidate = CandidateNode {
@@ -83,80 +78,6 @@ where
     return None;
 }
 fn construct_path<Id, Cost>(
-    known_nodes: &HashMap<Id, (Cost, Option<Id>)>,
-    final_node_id: Id,
-) -> Vec<Id>
-where
-    Id: Eq + Copy + Hash,
-{
-    let mut path = Vec::from([final_node_id]);
-
-    let mut current_node = final_node_id;
-    while let (_, Some(previous_node)) = known_nodes
-        .get(&current_node)
-        .expect("Internal implementation error: known_nodes should contain previous node.")
-    {
-        path.push(*previous_node);
-        current_node = *previous_node;
-    }
-    path.reverse();
-    return path;
-}
-
-pub fn a_star_old<Id, Cost>(
-    graph: &HashMap<Id, Vec<(Id, Cost)>>,
-    start: Id,
-    goal: Id,
-) -> Option<(Vec<Id>, Cost)>
-where
-    Id: Eq + Hash + Copy,
-    Cost: Ord + Copy + Clone + Add<Output = Cost> + Default,
-{
-    // Constant heurisitc.
-    let distance = Cost::default();
-
-    let start_node = CandidateNode {
-        this: start,
-        cost: Cost::default(),
-        distance: distance,
-    };
-
-    let mut candidate_nodes = BinaryHeap::new();
-    candidate_nodes.push(start_node);
-    // Smallest (known) cost path to node and the preceding node.
-    let mut known_nodes: HashMap<Id, (Cost, Option<Id>)> = HashMap::new();
-    known_nodes.insert(start_node.this, (start_node.cost, None));
-
-    while let Some(current) = candidate_nodes.pop() {
-        if current.this == goal {
-            return Some((construct_path_old(&known_nodes, current.this), current.cost));
-        }
-
-        graph.get(&current.this).unwrap_or(&vec![]).iter().for_each(
-            |(candidate_id, edge_weight)| {
-                let candidate = CandidateNode {
-                    this: *candidate_id,
-                    cost: current.cost + *edge_weight,
-                    distance: distance,
-                };
-                match known_nodes.get(&candidate.this) {
-                    // We know a better (or equivalent) path to this candidate neighbour.
-                    // Testing with `<=` because it should prevent more allocations and
-                    // if the path are really equal then it does not matter.
-                    Some((known_cost, _)) if *known_cost <= candidate.cost => (),
-                    // Otherwise add neighbour as a candidate for future graph exploration.
-                    _ => {
-                        candidate_nodes.push(candidate);
-                        known_nodes.insert(candidate.this, (candidate.cost, Some(current.this)));
-                    }
-                }
-            },
-        );
-    }
-
-    return None;
-}
-fn construct_path_old<Id, Cost>(
     known_nodes: &HashMap<Id, (Cost, Option<Id>)>,
     final_node_id: Id,
 ) -> Vec<Id>
