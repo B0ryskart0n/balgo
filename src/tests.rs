@@ -1,6 +1,19 @@
 use super::*;
 
 #[test]
+fn empty_graph() {
+    let graph = HashMap::new();
+
+    let start_node = 'A';
+    let goal_node = 'B';
+
+    let result = a_star::<char, u32>(&graph, start_node, goal_node);
+
+    let expected = None;
+
+    assert_eq!(result, expected);
+}
+#[test]
 fn none() {
     let graph = HashMap::from([('A', vec![])]);
 
